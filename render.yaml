@@ -1,16 +1,16 @@
 services:
   - type: web
-    name: flagship-api
+    name: cleartext-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: flagship-db
+          name: cleartext-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: flagship-redis
+          name: cleartext-redis
           type: redis
           property: connectionString
       - key: JWT_SECRET
@@ -23,17 +23,17 @@ services:
         value: "3600"
 
   - type: worker
-    name: flagship-worker
+    name: cleartext-worker
     runtime: docker
     dockerfilePath: ./worker/Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: flagship-db
+          name: cleartext-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: flagship-redis
+          name: cleartext-redis
           type: redis
           property: connectionString
       - key: JWT_SECRET
@@ -45,10 +45,11 @@ services:
       - key: CACHE_TTL
         value: "3600"
 
-databases:
-  - name: flagship-db
+  - type: redis
+    name: cleartext-redis
     plan: free
+    ipAllowList: []
 
-  - name: flagship-redis
+databases:
+  - name: cleartext-db
     plan: free
-    type: redis
