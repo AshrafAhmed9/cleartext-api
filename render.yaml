@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: flagship-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flagship-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: flagship-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        value: your-super-secret-key-change-this
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: RATE_LIMIT
+        value: 10/minute
+      - key: CACHE_TTL
+        value: "3600"
+
+  - type: worker
+    name: flagship-worker
+    runtime: docker
+    dockerfilePath: ./worker/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flagship-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: flagship-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        value: your-super-secret-key-change-this
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: RATE_LIMIT
+        value: 10/minute
+      - key: CACHE_TTL
+        value: "3600"
+
+databases:
+  - name: flagship-db
+    plan: free
+
+  - name: flagship-redis
+    plan: free
+    type: redis
