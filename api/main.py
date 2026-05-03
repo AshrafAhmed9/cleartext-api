@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from api.routes import predict, health
+from api.routes import predict, health, youtube
 from api.auth import create_token, check_brute_force, record_failed_attempt, clear_failed_attempts
 from api.middleware.security import SecurityHeadersMiddleware, RequestIDMiddleware
 from db.database import init_db
@@ -19,6 +19,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(predict.router)
 app.include_router(health.router)
+app.include_router(youtube.router)
 
 @app.on_event("startup")
 def startup():
