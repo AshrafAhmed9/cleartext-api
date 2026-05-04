@@ -4,7 +4,6 @@ A production-ready ML inference platform for toxic comment detection and YouTube
 
 Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with Docker and deployed on Railway.
 
-**Live API:** https://cleartext-api-production-12ca.up.railway.app/docs
 
 ---
 
@@ -19,6 +18,28 @@ Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with D
 | Security | JWT auth, rate limiting, brute force protection, XSS sanitization, audit logs |
 
 ---
+## Screenshots
+
+### Login
+![Login](screenshots/login.png)
+
+### Comment Analysis — Toxic
+![Comment Toxic](screenshots/comment-result.png)
+
+### Comment Analysis — Non-Toxic
+![Comment Non-Toxic](screenshots/comment-nontoxic.png)
+
+### YouTube Analysis
+![YouTube Analysis](screenshots/youtube-analysis.png)
+
+### API Documentation (Swagger)
+![Swagger](screenshots/swagger.png)
+
+### Docker Containers
+![Docker](screenshots/docker.png)
+
+
+
 
 ## Architecture
 
