@@ -1,9 +1,10 @@
-# ClearText API
+# ClearText — Asynchronous AI Inference & Processing Backend
 
-A production-ready ML inference platform for toxic comment detection and YouTube video sentiment analysis.
+![CI](https://github.com/AshrafAhmed9/cleartext-api/actions/workflows/ci.yml/badge.svg)
 
-Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with Docker and deployed on Railway.
+A production-inspired asynchronous ML inference platform for toxic comment detection and YouTube video sentiment analysis.
 
+Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with Docker, tested with pytest, and CI/CD via GitHub Actions.
 
 ---
 
@@ -16,8 +17,36 @@ Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with D
 | Async Processing | Tasks queued via Redis + Celery, non-blocking API responses |
 | Caching | Identical requests served from Redis cache in <5ms |
 | Security | JWT auth, rate limiting, brute force protection, XSS sanitization, audit logs |
+| Observability | `/metrics` endpoint, structured JSON logs, request ID tracing |
 
 ---
+
+## Request Flow
+
+```
+Client → POST /predict
+           │
+     ┌─────▼─────────────────────────────────┐
+     │  FastAPI: Auth + Rate Limit + Sanitize  │
+     └─────┬─────────────────────────────────┘
+           │
+     ┌─────▼──────┐   HIT    ┌────────────────────┐
+     │ Redis Cache │─────────▶│ Return result <5ms  │
+     └─────┬──────┘          └────────────────────┘
+           │ MISS
+     ┌─────▼──────────────────────────────────┐
+     │ Redis Queue → Celery Worker → BERT      │
+     │             → PostgreSQL (persist)      │
+     │             → Redis Cache (store)       │
+     └────────────────────────────────────────┘
+           │
+     Client polls GET /result/{task_id}
+```
+
+**Job lifecycle:** `QUEUED → PROCESSING → COMPLETED` (or `FAILED` after 3 retries with exponential backoff)
+
+---
+
 ## Screenshots
 
 ### Login
@@ -38,8 +67,7 @@ Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — containerized with D
 ### Docker Containers
 ![Docker](screenshots/docker.png)
 
-
-
+---
 
 ## Architecture
 
@@ -55,9 +83,9 @@ FastAPI (JWT auth, rate limiting, security headers)
                         │
                     Redis Queue
                         │
-                    Celery Worker
+                    Celery Worker (max_retries=3, exponential backoff)
                         │
-                    toxic-bert (GPU)
+                    toxic-bert (BERT inference)
                         │
                     PostgreSQL + Redis Cache
 ```
@@ -66,10 +94,12 @@ FastAPI (JWT auth, rate limiting, security headers)
 
 ## Performance
 
-| Users | Avg Latency | RPS | Failures |
-|-------|-------------|-----|----------|
-| 100 | 52ms | 44 | 0% |
-| 500 | 106ms | 231 | 0% |
+| Users | Avg Latency | p95 Latency | RPS | Failures |
+|-------|-------------|-------------|-----|----------|
+| 100   | 52ms        | 85ms        | 44  | 0%       |
+| 500   | 106ms       | 240ms       | 231 | 0%       |
+
+Load tested with Locust. Latency measured end-to-end including queue wait. Inference-only latency: ~140ms (GPU) / ~1600ms (CPU).
 
 ---
 
@@ -81,7 +111,9 @@ FastAPI (JWT auth, rate limiting, security headers)
 - **ML Model:** `unitary/toxic-bert` (HuggingFace BERT)
 - **AI Insights:** Groq API (Llama 3.3 70B)
 - **YouTube:** YouTube Data API v3
-- **Security:** JWT, slowapi, bcrypt, OWASP headers
+- **Security:** JWT, slowapi, OWASP headers
+- **Testing:** pytest, pytest-mock (14 tests)
+- **CI/CD:** GitHub Actions
 - **Load Testing:** Locust
 - **Containerization:** Docker + docker-compose
 - **Deployment:** Railway
@@ -96,7 +128,8 @@ FastAPI (JWT auth, rate limiting, security headers)
 | POST | `/predict` | Submit comment for analysis |
 | GET | `/result/{task_id}` | Fetch prediction result |
 | POST | `/analyze/youtube` | Analyze YouTube video comments |
-| GET | `/health` | System health check |
+| GET | `/health` | System health check (Redis + DB + queue) |
+| GET | `/metrics` | Live metrics (jobs, cache hit rate, latency) |
 
 ---
 
@@ -149,11 +182,21 @@ All 4 services start automatically. Open `http://localhost:8000/docs`.
 
 ---
 
+## Testing
+
+```bash
+pytest tests/ -v
+```
+
+14 tests covering auth, predict endpoints, health checks, metrics, and worker tasks. All external dependencies (Redis, PostgreSQL, Celery) are mocked.
+
+---
+
 ## Security Features
 
 - JWT authentication (24hr expiry)
 - Rate limiting: 10 requests/minute per IP
-- Brute force protection: IP lockout after 5 failed login attempts
+- Brute force protection: IP lockout after 5 failed login attempts (5 min)
 - XSS input sanitization (strips HTML/scripts before inference)
 - OWASP security headers (CSP, HSTS, X-Frame-Options, etc.)
 - Structured JSON audit logging with request ID tracing
@@ -172,20 +215,24 @@ All 4 services start automatically. Open `http://localhost:8000/docs`.
 │   └── routes/
 │       ├── predict.py       # /predict + /result endpoints
 │       ├── health.py        # /health endpoint
+│       ├── metrics.py       # /metrics endpoint
 │       └── youtube.py       # YouTube analysis endpoint
 ├── worker/
-│   ├── tasks.py             # Celery task definitions
+│   ├── tasks.py             # Celery task with lifecycle tracking
 │   └── ml_model.py          # toxic-bert inference wrapper
 ├── core/
 │   ├── config.py            # Environment settings
 │   ├── celery_app.py        # Celery configuration
-│   └── cache.py             # Redis cache helpers
+│   └── cache.py             # Redis cache + hit/miss tracking
 ├── db/
 │   ├── database.py          # SQLAlchemy engine + session
-│   └── models.py            # Prediction table schema
+│   └── models.py            # Prediction table with job lifecycle columns
+├── tests/                   # pytest test suite (14 tests)
 ├── frontend/frontend2/      # React frontend (Vite)
 ├── load_testing/
 │   └── locustfile.py        # Locust load test scenarios
+├── .github/workflows/
+│   └── ci.yml               # GitHub Actions CI/CD
 ├── docker-compose.yml
 └── ARCHITECTURE.md          # Full system documentation
 ```

@@ -162,3 +162,66 @@ Bottleneck: single Celery worker. Fix: horizontal scaling (add workers).
 - WebSocket push instead of polling
 - Amazon product review analysis
 - Batch YouTube comment inference (parallel workers)
+
+
+---
+
+## Request Flow
+
+1. Client submits text via `POST /predict`
+2. API validates JWT → checks rate limit → sanitizes input (strips HTML/XSS)
+3. API computes SHA256 cache key → checks Redis
+4. **Cache HIT** → return result immediately (<5ms)
+5. **Cache MISS** → generate task_id, enqueue Celery task → return `{task_id, status: queued}`
+6. Worker picks up task → sets `status=processing` + `started_at` timestamp
+7. Worker runs BERT inference → `processing_time_ms` recorded (**excludes queue wait time**)
+8. Result stored in PostgreSQL + Redis cache
+9. Client polls `GET /result/{task_id}` → returns completed result
+
+---
+
+## Security
+
+| Feature | Implementation |
+|---------|---------------|
+| Authentication | JWT HS256, 24hr expiry |
+| Brute force protection | IP lockout after 5 failed attempts (5 min cooldown) |
+| Rate limiting | 10 req/min per IP (slowapi) |
+| Input sanitization | Strips HTML/script tags before inference |
+| Security headers | OWASP: CSP, HSTS, X-Frame-Options, X-XSS-Protection |
+| Audit logging | JSON structured logs with request ID tracing |
+
+---
+
+## Retry Strategy
+
+```
+max_retries = 3
+backoff:     2s → 4s → 8s (exponential)
+exhausted:   status = "failed" (poison job, no further retries)
+```
+
+Jobs that fail after 3 retries are marked `failed` in PostgreSQL and excluded from further execution.
+
+---
+
+## Current Limitations
+
+- Single Celery worker — horizontal scaling not configured
+- Redis is a single point of failure for queue + cache (no Sentinel/Cluster)
+- Synchronous DB writes in worker — no write batching
+- No dead-letter queue — failed jobs tracked in DB only
+- Auth uses hardcoded credentials — no user management system
+- YouTube analysis is synchronous — 100 comments × inference time blocks the worker
+
+---
+
+## Tradeoffs
+
+| Decision | Why | Alternative considered |
+|----------|-----|----------------------|
+| Celery over Kafka | Simpler ops, sufficient for current scale | Kafka for >10K msg/sec |
+| Redis for queue + cache | Single infra, already deployed | RabbitMQ for complex routing |
+| Async processing | Prevents API blocking during 300–1600ms inference | Sync only viable for <50ms models |
+| BERT (unitary/toxic-bert) | Open-source, no API cost, runs locally | GPT API for higher accuracy |
+| FastAPI over Flask | Native async support, auto OpenAPI docs | Flask for simpler single-threaded apps |
