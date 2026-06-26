@@ -7,6 +7,10 @@ from core.config import settings
 router = APIRouter()
 _redis = redis_lib.from_url(settings.redis_url)
 
+DLQ_KEY = "dlq:inference"
+HEARTBEAT_KEY = "worker:heartbeat"
+
+
 @router.get("/health", tags=["System"])
 def health():
     # Check Redis
@@ -33,14 +37,27 @@ def health():
         queue_depth = -1
         queue_status = "error"
 
+    # DLQ depth
+    try:
+        dlq_depth = int(_redis.llen(DLQ_KEY) or 0)
+    except Exception:
+        dlq_depth = -1
+
+    # Worker liveness
+    worker_alive = bool(_redis.exists(HEARTBEAT_KEY))
+
     overall = "ok" if all(s == "ok" for s in [redis_status, db_status, queue_status]) else "degraded"
+    if not worker_alive:
+        overall = "degraded"
 
     return {
         "status": overall,
-        "version": "1.0.0",
+        "version": "2.0.0",
         "services": {
             "redis": redis_status,
             "database": db_status,
-            "queue": {"status": queue_status, "depth": queue_depth}
+            "queue": {"status": queue_status, "depth": queue_depth},
+            "dlq": {"depth": dlq_depth},
+            "worker": {"alive": worker_alive},
         }
     }

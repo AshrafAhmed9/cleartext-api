@@ -6,6 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from api.routes import predict, health, youtube, metrics
+from api.routes import dlq
 from api.auth import create_token, check_brute_force, record_failed_attempt, clear_failed_attempts
 from api.middleware.security import SecurityHeadersMiddleware, RequestIDMiddleware
 from db.database import init_db
@@ -18,22 +19,25 @@ app = FastAPI(
     description="""
 ## Asynchronous AI Inference & Processing Backend
 
-A production-inspired backend platform for scalable ML inference.
+A production-grade backend platform for scalable ML inference.
 Accepts text or YouTube URLs, processes via async worker pipeline,
 and returns structured AI analysis with full observability.
 
-### Architecture
+### Architecture (v2)
+- **Request batching** — concurrent inferences merged into one model forward pass
 - **Async queue** (Celery + Redis) — non-blocking inference, API responds in <5ms
 - **Worker pipeline** — BERT model inference, max 3 retries with exponential backoff
-- **Caching layer** — identical inputs served from Redis in <5ms
-- **Observability** — `/metrics` endpoint, structured JSON logs, request ID tracing
+- **Model-versioned cache** — keyed on (input, model_version) so model swaps never serve stale answers
+- **Circuit breaker** — 503 + Retry-After when the worker is down or queue is full
+- **Dead-letter queue** — failed jobs are inspectable and replayable, never lost
+- **Prometheus metrics** — p50/p99 latency, cache hit rate, queue depth, batch size
 - **Security** — JWT auth, rate limiting, brute force protection, XSS sanitization
 
 ### Use Cases
 - Single comment toxicity classification (POST /predict)
 - YouTube video comment sentiment analysis (POST /analyze/youtube)
     """,
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -54,6 +58,7 @@ app.include_router(predict.router, tags=["Comment Analysis"])
 app.include_router(health.router, tags=["System"])
 app.include_router(youtube.router, tags=["YouTube Analysis"])
 app.include_router(metrics.router, tags=["System"])
+app.include_router(dlq.router, tags=["Reliability"])
 
 @app.on_event("startup")
 def startup():
@@ -70,7 +75,7 @@ def landing():
             body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 80px auto; padding: 0 20px; color: #333; }
             h1 { font-size: 2rem; margin-bottom: 0.5rem; }
             p { color: #666; line-height: 1.6; }
-            .links { margin-top: 2rem; display: flex; gap: 1rem; }
+            .links { margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; }
             a { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 500; }
             .primary { background: #2563eb; color: white; }
             .secondary { border: 1px solid #ddd; color: #333; }
@@ -78,13 +83,14 @@ def landing():
         </style>
     </head>
     <body>
-        <h1>ClearText API <span class="badge">v1.0.0</span></h1>
-        <p>Production-inspired asynchronous AI inference backend. Built with FastAPI, Celery, Redis, PostgreSQL, and BERT.</p>
+        <h1>ClearText API <span class="badge">v2.0.0</span></h1>
+        <p>Production-grade asynchronous AI inference backend with request batching, model-versioned caching, circuit breaker, dead-letter queue, and Prometheus observability. Built with FastAPI, Celery, Redis, PostgreSQL, and BERT.</p>
         <div class="links">
             <a href="/redoc" class="primary">Documentation</a>
             <a href="/docs" class="secondary">Swagger UI</a>
             <a href="/health" class="secondary">Health Check</a>
             <a href="/metrics" class="secondary">Metrics</a>
+            <a href="/metrics/prometheus" class="secondary">Prometheus</a>
         </div>
     </body>
     </html>
