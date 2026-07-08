@@ -1,16 +1,14 @@
-# ClearText v2 — Asynchronous AI Inference & Processing Backend
+# ClearText — Asynchronous ML Serving Infrastructure
 
 ![CI](https://github.com/AshrafAhmed9/cleartext-api/actions/workflows/ci.yml/badge.svg)
 
-A production-grade asynchronous ML inference platform for toxic comment detection and YouTube video sentiment analysis.
+A production-grade asynchronous inference platform demonstrating how to serve a slow, expensive ML model to many concurrent users reliably — request batching, model-versioned caching, a circuit breaker, a dead-letter queue, and full Prometheus/Grafana observability, built around a BERT toxicity classifier as the example workload.
 
-Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — featuring request batching, model-versioned caching, circuit breaker, dead-letter queue, Prometheus metrics, and Grafana dashboards.
-
-> **Branch note:** This is `v2`. The original version lives on `main` and is unchanged.
+Built with FastAPI, Celery, Redis, PostgreSQL, and HuggingFace Transformers.
 
 ---
 
-## v2 Upgrades
+## Engineering Highlights
 
 | Feature | What it does | Why it matters |
 |---------|-------------|----------------|
@@ -42,7 +40,7 @@ Built with FastAPI, Celery, Redis, PostgreSQL, and BERT — featuring request ba
 
 ---
 
-## Request Flow (v2)
+## Request Flow
 
 ```
 Client → POST /predict
@@ -115,12 +113,12 @@ Load tested with Locust + k6. Latency measured end-to-end including queue wait. 
 - **API:** FastAPI, Python 3.11
 - **Queue:** Celery + Redis (thread pool for batching)
 - **Database:** PostgreSQL + SQLAlchemy + Alembic migrations
-- **ML Model:** `unitary/toxic-bert` (HuggingFace BERT)
-- **AI Insights:** Groq API (Llama 3.3 70B)
+- **ML Model:** `unitary/toxic-bert` (HuggingFace BERT) — the example workload; the serving infrastructure is model-agnostic
+- **AI Insights:** Groq API (`openai/gpt-oss-120b`)
 - **YouTube:** YouTube Data API v3
 - **Observability:** Prometheus + Grafana, structured JSON logs
 - **Security:** JWT, slowapi, OWASP headers
-- **Testing:** pytest, pytest-mock (15+ tests)
+- **Testing:** pytest, pytest-mock (29 tests)
 - **CI/CD:** GitHub Actions
 - **Load Testing:** Locust + k6
 - **Containerization:** Docker + docker-compose (6 services)
@@ -161,7 +159,7 @@ The pre-built dashboard (`ops/grafana/dashboards/cleartext.json`) includes:
 | Worker In-Flight | Active requests in the worker |
 | Circuit Breaker Trips | 5-minute trip rate |
 
-Access at `http://localhost:3000` (admin/admin) after `docker compose up`.
+Access at `http://localhost:3001` (admin/admin) after `docker compose up`.
 
 ### Prometheus Metrics
 
@@ -187,7 +185,6 @@ Scraped from the API (`/metrics/prometheus`) and worker (`:9100`):
 ```bash
 git clone https://github.com/AshrafAhmed9/cleartext-api.git
 cd cleartext-api
-git checkout v2
 ```
 
 2. Create `.env`:
@@ -228,7 +225,7 @@ Services: PostgreSQL, Redis (LRU), API, Worker, Prometheus, Grafana.
 | Service | URL |
 |---------|-----|
 | API docs | http://localhost:8000/docs |
-| Grafana | http://localhost:3000 (admin/admin) |
+| Grafana | http://localhost:3001 (admin/admin) |
 | Prometheus | http://localhost:9090 |
 
 ---
@@ -239,7 +236,7 @@ Services: PostgreSQL, Redis (LRU), API, Worker, Prometheus, Grafana.
 pytest tests/ -v
 ```
 
-15+ tests covering auth, predictions, cache versioning, circuit breaker, dead-letter queue, metrics (JSON + Prometheus), health checks, and worker tasks. All external dependencies mocked.
+29 tests covering auth, predictions, cache versioning, circuit breaker, dead-letter queue, metrics (JSON + Prometheus), health checks, and worker tasks. All external dependencies mocked.
 
 ---
 
@@ -309,8 +306,8 @@ k6 run load_testing/k6_predict.js
 │   └── grafana/
 │       ├── provisioning/    # Datasource + dashboard provisioning
 │       └── dashboards/cleartext.json
-├── tests/                   # pytest suite (15+ tests)
-├── frontend/frontend2/      # React frontend (Vite)
+├── tests/                   # pytest suite (29 tests)
+├── frontend/                # React frontend (Vite)
 ├── load_testing/
 │   ├── locustfile.py        # Locust load tests
 │   └── k6_predict.js        # k6 load tests
@@ -328,7 +325,7 @@ k6 run load_testing/k6_predict.js
 React frontend built with Vite. Run separately:
 
 ```bash
-cd frontend/frontend2
+cd frontend
 npm install
 npm run dev
 ```
