@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from api.auth import get_current_user
 from core.config import settings
-from worker.ml_model import predict
 from googleapiclient.discovery import build
 from groq import Groq
 
@@ -79,6 +78,8 @@ Use exactly these keys:
 
 @router.post("/analyze/youtube")
 def analyze_youtube(body: YouTubeRequest, user: str = Depends(get_current_user)):
+    from worker.ml_model import predict
+
     video_id = extract_video_id(body.url)
     comments = fetch_comments(video_id)
 
