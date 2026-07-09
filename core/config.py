@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cache_ttl: int = 3600
     youtube_api_key: str = ""
     groq_api_key: str = ""
+    cors_origins: str = "http://localhost:5173"
 
     # --- Model / cache versioning (v2) ---
     ml_model_name: str = "unitary/toxic-bert"
