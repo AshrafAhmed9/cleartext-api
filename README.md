@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/AshrafAhmed9/cleartext-api/actions/workflows/ci.yml/badge.svg)
 
-**Live demo:** [cleartext-frontend-production.up.railway.app](https://cleartext-frontend-production.up.railway.app) · **API docs:** [cleartext-api-production-12ca.up.railway.app/docs](https://cleartext-api-production-12ca.up.railway.app/docs)
+**Live demo:** [frontend-ashraf-s-projects2.vercel.app](https://frontend-ashraf-s-projects2.vercel.app) · **API docs:** [cleartext-api-production-12ca.up.railway.app/docs](https://cleartext-api-production-12ca.up.railway.app/docs)
 
 A production-grade asynchronous inference platform demonstrating how to serve a slow, expensive ML model to many concurrent users reliably — request batching, model-versioned caching, a circuit breaker, a dead-letter queue, and full Prometheus/Grafana observability, built around a BERT toxicity classifier as the example workload.
 
