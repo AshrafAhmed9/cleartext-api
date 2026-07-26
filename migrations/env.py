@@ -2,7 +2,7 @@ import os
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
-from db.models import Base
+from db import Base
 
 config = context.config
 if config.config_file_name is not None:
