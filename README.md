@@ -27,7 +27,7 @@ Built with FastAPI, Celery, Redis, PostgreSQL, and HuggingFace Transformers.
 | Feature | Description |
 |---------|-------------|
 | Comment Analysis | Submit any text → get toxic/non-toxic prediction with confidence score |
-| YouTube Analysis | Submit a YouTube URL → analyze 100 comments → AI-generated insights (Groq). Backend endpoint only — try it via Swagger. |
+| YouTube Analysis | Submit a YouTube URL → analyze 100 comments → AI-generated insights (Groq) |
 | Async Processing | Tasks queued via Redis + Celery, non-blocking API responses |
 | Caching | Model-versioned cache — identical inputs served from Redis in <5ms |
 | Batching | Concurrent requests merged into one forward pass for throughput |
@@ -258,7 +258,7 @@ Open `http://localhost:8089` → set users → start. `locustfile.py` sits at th
 
 ## Frontend
 
-React frontend built with Vite: log in, submit a comment, see the result.
+React frontend built with Vite: log in, then two tabs — analyze a single comment, or analyze a YouTube video's comments.
 
 ```bash
 cd frontend
