@@ -81,11 +81,16 @@ function CommentPanel({ token }) {
       const headers = { Authorization: `Bearer ${token}` }
       const { data } = await axios.post(`${API}/predict`, { text }, { headers })
 
-      for (let i = 0; i < 30; i++) {
-        await new Promise(r => setTimeout(r, 1000))
-        const { data: r } = await axios.get(`${API}/result/${data.task_id}`, { headers })
-        if (r.status === 'completed') { setResult(r); break }
-        if (r.status === 'failed') { setError('Analysis failed.'); break }
+      if (data.status === 'completed') {
+        // Cache hit — the API already returned the full result, nothing to poll.
+        setResult(data)
+      } else {
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 1000))
+          const { data: r } = await axios.get(`${API}/result/${data.task_id}`, { headers })
+          if (r.status === 'completed') { setResult(r); break }
+          if (r.status === 'failed') { setError('Analysis failed.'); break }
+        }
       }
     } catch {
       setError('Something went wrong.')
