@@ -77,38 +77,43 @@ Use exactly these keys:
         }
 
 
+def _split_by_toxicity(comments: list, results: list) -> tuple:
+    toxic = [c for c, r in zip(comments, results) if r["prediction"] == "toxic"]
+    non_toxic = [c for c, r in zip(comments, results) if r["prediction"] == "non-toxic"]
+    return toxic, non_toxic
+
+
+def _community_rating(toxicity_rate: float) -> str:
+    if toxicity_rate < 20:
+        return "Healthy"
+    if toxicity_rate < 50:
+        return "Moderate"
+    return "Toxic"
+
+
+def _sentiment_label(toxicity_rate: float) -> str:
+    if toxicity_rate < 10:
+        return "Positive"
+    if toxicity_rate < 40:
+        return "Mixed"
+    return "Negative"
+
+
 @router.post("/analyze/youtube")
 def analyze_youtube(body: YouTubeRequest, user: str = Depends(get_current_user)):
     from worker.model import predict
 
     video_id = extract_video_id(body.url)
     comments = fetch_comments(video_id)
-
     if not comments:
         raise HTTPException(status_code=404, detail="No comments found for this video")
 
     results = [predict(c) for c in comments]
-
-    toxic = [comments[i] for i, r in enumerate(results) if r["prediction"] == "toxic"]
-    non_toxic = [comments[i] for i, r in enumerate(results) if r["prediction"] == "non-toxic"]
-    avg_confidence = round(sum(r["confidence"] for r in results) / len(results), 4)
+    toxic, non_toxic = _split_by_toxicity(comments, results)
     toxicity_rate = round(len(toxic) / len(results) * 100, 1)
 
-    if toxicity_rate < 20:
-        rating = "Healthy"
-    elif toxicity_rate < 50:
-        rating = "Moderate"
-    else:
-        rating = "Toxic"
-
     insights = generate_insights(comments, toxic, non_toxic)
-
-    if toxicity_rate < 10:
-        insights["overall_sentiment"] = "Positive"
-    elif toxicity_rate < 40:
-        insights["overall_sentiment"] = "Mixed"
-    else:
-        insights["overall_sentiment"] = "Negative"
+    insights["overall_sentiment"] = _sentiment_label(toxicity_rate)
 
     return {
         "video_id": video_id,
@@ -116,7 +121,7 @@ def analyze_youtube(body: YouTubeRequest, user: str = Depends(get_current_user))
         "toxic_count": len(toxic),
         "non_toxic_count": len(non_toxic),
         "toxicity_rate_percent": toxicity_rate,
-        "average_confidence": avg_confidence,
-        "community_rating": rating,
+        "average_confidence": round(sum(r["confidence"] for r in results) / len(results), 4),
+        "community_rating": _community_rating(toxicity_rate),
         "insights": insights,
     }
