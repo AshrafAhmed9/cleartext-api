@@ -1,8 +1,8 @@
+"""Login (JWT issuing) and brute-force lockout, both backed by Redis."""
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
-from core.config import settings
 import redis
 from core.config import settings
 

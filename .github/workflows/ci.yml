@@ -29,7 +29,6 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET: test-secret-key
       JWT_ALGORITHM: HS256
-      RATE_LIMIT: 1000/minute
       CACHE_TTL: "3600"
       YOUTUBE_API_KEY: fake-key
       GROQ_API_KEY: fake-key

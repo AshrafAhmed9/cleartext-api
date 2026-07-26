@@ -1,7 +1,8 @@
+"""One endpoint that pings every dependency the API relies on."""
 from fastapi import APIRouter
 from sqlalchemy import text
 import redis as redis_lib
-from db.database import SessionLocal
+from db import SessionLocal
 from core.config import settings
 
 router = APIRouter()

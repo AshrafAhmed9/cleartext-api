@@ -12,7 +12,7 @@ import time
 
 from core.config import settings
 from core import metrics
-from worker.ml_model import predict_batch
+from worker.model import predict_batch
 
 
 class _Job:

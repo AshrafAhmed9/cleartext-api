@@ -44,7 +44,7 @@ def test_dlq_replay_success(client, auth_headers, mock_redis_client, mocker):
         "failed_at": "2026-06-26T12:00:00",
     })
     mock_redis_client.lrange.return_value = [entry]
-    mocker.patch("api.routes.dlq.celery_app.send_task")
+    mocker.patch("api.dlq.celery_app.send_task")
 
     response = client.post("/dlq/abc-123/replay", headers=auth_headers)
     assert response.status_code == 200

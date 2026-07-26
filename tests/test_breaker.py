@@ -3,7 +3,7 @@ def test_circuit_breaker_closed_when_worker_alive(client, auth_headers, mock_red
     mock_redis_client.exists.return_value = True
     mock_redis_client.llen.return_value = 0
     mock_redis_client.get.return_value = None  # cache miss
-    mocker.patch("api.routes.predict.celery_app.send_task")
+    mocker.patch("api.predict.celery_app.send_task")
 
     response = client.post("/predict", json={"text": "hello"}, headers=auth_headers)
     assert response.status_code == 200

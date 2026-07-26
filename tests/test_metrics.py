@@ -5,7 +5,7 @@ def test_metrics_has_required_fields(client, auth_headers, mock_redis_client):
     mock_redis_client.get.side_effect = lambda key: b"10" if "hits" in key else b"5"
     mock_redis_client.llen.return_value = 2
 
-    with patch("api.routes.metrics.SessionLocal") as MockSession:
+    with patch("api.metrics.SessionLocal") as MockSession:
         mock_db = MagicMock()
         mock_db.query.return_value.scalar.return_value = 42
         mock_db.query.return_value.filter.return_value.scalar.return_value = 38
@@ -38,7 +38,7 @@ def test_metrics_hit_rate_is_float(client, auth_headers, mock_redis_client):
     mock_redis_client.get.side_effect = lambda key: b"8" if "hits" in key else b"2"
     mock_redis_client.llen.return_value = 0
 
-    with patch("api.routes.metrics.SessionLocal") as MockSession:
+    with patch("api.metrics.SessionLocal") as MockSession:
         mock_db = MagicMock()
         mock_db.query.return_value.scalar.return_value = 0
         mock_db.query.return_value.filter.return_value.scalar.return_value = 0

@@ -1,3 +1,4 @@
+"""Loads toxic-bert once at import time; every call reuses the same model."""
 from typing import Dict, List
 from transformers import pipeline
 import torch

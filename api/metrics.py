@@ -1,8 +1,8 @@
+"""Two ways to read the same numbers: JSON for a human, text for Prometheus."""
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import func
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-from db.database import SessionLocal
-from db.models import Prediction
+from db import SessionLocal, Prediction
 import redis as redis_lib
 from core.config import settings
 from api.auth import get_current_user

@@ -1,3 +1,4 @@
+"""Pull a video's comments, score each for toxicity, and ask Groq to summarize."""
 import json
 import re
 from fastapi import APIRouter, Depends, HTTPException
@@ -78,7 +79,7 @@ Use exactly these keys:
 
 @router.post("/analyze/youtube")
 def analyze_youtube(body: YouTubeRequest, user: str = Depends(get_current_user)):
-    from worker.ml_model import predict
+    from worker.model import predict
 
     video_id = extract_video_id(body.url)
     comments = fetch_comments(video_id)

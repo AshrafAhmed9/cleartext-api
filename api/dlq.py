@@ -32,11 +32,6 @@ def replay_dlq_entry(task_id: str, user: str = Depends(get_current_user)):
         entry = json.loads(raw)
         if entry.get("task_id") == task_id:
             _redis.lrem(DLQ_KEY, 1, raw)
-            celery_app.send_task(
-                "worker.tasks.run_inference",
-                args=[task_id, entry["text"]],
-                kwargs={"callback_url": entry.get("callback_url")},
-                task_id=task_id,
-            )
+            celery_app.send_task("worker.tasks.run_inference", args=[task_id, entry["text"]], task_id=task_id)
             return {"status": "replayed", "task_id": task_id}
     raise HTTPException(status_code=404, detail="Task not found in DLQ")
