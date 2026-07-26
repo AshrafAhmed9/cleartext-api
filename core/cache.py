@@ -1,3 +1,4 @@
+"""Redis cache keyed on (model_version, text) — swap models without serving stale answers."""
 import hashlib
 import json
 from typing import Optional

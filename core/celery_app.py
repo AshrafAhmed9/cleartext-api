@@ -1,3 +1,4 @@
+"""The Celery app both the API (sender) and the worker (receiver) import."""
 from celery import Celery
 from core.config import settings
 
