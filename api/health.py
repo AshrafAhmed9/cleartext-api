@@ -3,13 +3,10 @@ from fastapi import APIRouter
 from sqlalchemy import text
 import redis as redis_lib
 from db import SessionLocal
-from core.config import settings
+from core.config import settings, DLQ_KEY, HEARTBEAT_KEY
 
 router = APIRouter()
 _redis = redis_lib.from_url(settings.redis_url)
-
-DLQ_KEY = "dlq:inference"
-HEARTBEAT_KEY = "worker:heartbeat"
 
 
 @router.get("/health", tags=["System"])

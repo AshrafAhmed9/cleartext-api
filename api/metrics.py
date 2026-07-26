@@ -4,13 +4,11 @@ from sqlalchemy import func
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from db import SessionLocal, Prediction
 import redis as redis_lib
-from core.config import settings
+from core.config import settings, DLQ_KEY
 from api.auth import get_current_user
 
 router = APIRouter()
 _redis = redis_lib.from_url(settings.redis_url)
-
-DLQ_KEY = "dlq:inference"
 
 
 @router.get("/metrics", tags=["System"])

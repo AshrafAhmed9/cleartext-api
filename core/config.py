@@ -33,3 +33,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# The two Redis keys every module that touches the worker's health agrees on.
+DLQ_KEY = "dlq:inference"
+HEARTBEAT_KEY = "worker:heartbeat"

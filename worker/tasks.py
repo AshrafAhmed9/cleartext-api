@@ -14,14 +14,13 @@ import redis as redis_lib
 
 from core.celery_app import celery_app
 from core.cache import set_cached
-from core.config import settings
+from core.config import settings, DLQ_KEY
 from core import metrics
 from db import SessionLocal, Prediction
 from worker.batcher import get_batcher
 from worker import bootstrap  # noqa: F401  (registers worker_ready signal)
 
 _redis = redis_lib.from_url(settings.redis_url)
-DLQ_KEY = "dlq:inference"
 
 
 def _mark_processing(db, task_id: str):

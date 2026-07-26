@@ -4,16 +4,15 @@ Failed inference jobs are pushed to a Redis list (dlq:inference) by the worker.
 These endpoints let an operator inspect and replay them.
 """
 import json
-from typing import List, Dict, Any
+from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 import redis as redis_lib
 from api.auth import get_current_user
-from core.config import settings
+from core.config import settings, DLQ_KEY
 from core.celery_app import celery_app
 
 router = APIRouter(prefix="/dlq", tags=["Reliability"])
 _redis = redis_lib.from_url(settings.redis_url)
-DLQ_KEY = "dlq:inference"
 
 
 @router.get("", response_model=Dict[str, Any])

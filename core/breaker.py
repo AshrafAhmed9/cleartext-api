@@ -8,15 +8,16 @@ When either fires, the API returns 503 + Retry-After instead of silently
 queueing work that can't be served.
 """
 import redis as redis_lib
-from core.config import settings
+from core.config import settings, DLQ_KEY, HEARTBEAT_KEY
 from core import metrics
 
 _redis = redis_lib.from_url(settings.redis_url)
-HEARTBEAT_KEY = "worker:heartbeat"
 
 
 def is_open() -> bool:
     """Return True if the circuit is OPEN (unhealthy — reject work)."""
+    metrics.DLQ_DEPTH.set(int(_redis.llen(DLQ_KEY) or 0))
+
     # Check 1: worker heartbeat
     if not _redis.exists(HEARTBEAT_KEY):
         metrics.CIRCUIT_BREAKER_TRIPS.inc()

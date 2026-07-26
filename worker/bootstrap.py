@@ -10,10 +10,9 @@ from celery.signals import worker_ready
 from prometheus_client import start_http_server
 import redis as redis_lib
 
-from core.config import settings
+from core.config import settings, HEARTBEAT_KEY
 
 _redis = redis_lib.from_url(settings.redis_url)
-HEARTBEAT_KEY = "worker:heartbeat"
 
 
 def _heartbeat_loop():
