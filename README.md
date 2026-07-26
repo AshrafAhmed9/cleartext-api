@@ -66,11 +66,18 @@ Client → POST /predict
 
 ## Performance
 
-| Users | RPS | Failures |
-|-------|-----|----------|
-| 500   | 231 | 0%       |
+Ramped to 500 concurrent users against a local API + worker (1 model instance, CPU inference, `batch_max_size=16`), Postgres and Redis in Docker:
 
-Measured with Locust (`load_testing/results.md` has the full breakdown and methodology — including an honest note on what "231 req/s" is and isn't measuring). Inference-only latency: ~150-300ms (CPU) per uncached request; a model-versioned cache serves repeats in <5ms.
+| Endpoint | Requests | Failures | Median | Req/s |
+|---|---|---|---|---|
+| POST /predict | 15,074 | 0 | 2ms | 169.1 |
+| GET /health | 5,050 | 0 | 3ms | 56.7 |
+| POST /token | 500 | 0 | 21ms | 5.6 |
+| **Aggregated** | 20,624 | **0** | 2ms | **231.4** |
+
+**231 req/s, zero failures at 500 concurrent users.**
+
+One honest caveat: `/predict` only *enqueues* the job onto Celery and returns immediately (that's the point of the async design) — its 2ms median is enqueue latency, not time-to-answer. True end-to-end latency (submit, then poll `/result` until the model actually finishes) means waiting on real BERT inference — ~150-300ms uncached on CPU, or near-instant on a cache hit (`core/cache.py`).
 
 ---
 
@@ -111,7 +118,7 @@ Measured with Locust (`load_testing/results.md` has the full breakdown and metho
 
 ### Grafana Dashboard
 
-The pre-built dashboard (`ops/grafana/dashboards/cleartext.json`) includes:
+The pre-built dashboard (`ops/grafana/dashboards/cleartext.json`, loaded automatically) includes:
 
 | Panel | Metric |
 |-------|--------|
@@ -197,9 +204,9 @@ pytest tests/ -v
 ## Load Testing
 
 ```bash
-locust -f load_testing/locustfile.py --host http://localhost:8000
+locust --host http://localhost:8000
 ```
-Open `http://localhost:8089` → set users → start. See `load_testing/results.md` for a captured 500-user run.
+Open `http://localhost:8089` → set users → start. `locustfile.py` sits at the repo root, so Locust finds it with no `-f` flag. See [Performance](#performance) above for a captured 500-user run.
 
 ---
 
@@ -237,13 +244,11 @@ Open `http://localhost:8089` → set users → start. See `load_testing/results.
 │   ├── 001_initial_schema.py
 │   └── 002_add_model_version.py
 ├── ops/
-│   ├── prometheus/prometheus.yml
+│   ├── prometheus.yml
 │   └── grafana/            # Provisioning + dashboards/cleartext.json
 ├── tests/                   # pytest suite (29 tests)
 ├── frontend/                 # React frontend (Vite) — one page
-├── load_testing/
-│   ├── locustfile.py          # Locust load test
-│   └── results.md              # Captured 500-user run
+├── locustfile.py               # Locust load test (root, so `locust` needs no -f flag)
 ├── .github/workflows/ci.yml     # CI: Postgres + Alembic + pytest
 ├── docker-compose.yml             # 6 services
 └── alembic.ini
