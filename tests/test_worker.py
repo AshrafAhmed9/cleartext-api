@@ -1,5 +1,7 @@
 from unittest.mock import patch, MagicMock
 
+from db import Prediction
+
 
 def test_run_inference_success():
     mock_result = {"prediction": "toxic", "confidence": 0.93, "model_version": "toxic-bert-1"}
@@ -22,22 +24,25 @@ def test_run_inference_success():
         assert "processing_time_ms" in result
 
 
-def test_run_inference_saves_to_db():
+def test_run_inference_persists_to_real_db(db_session):
+    """Same task, but SessionLocal is the real Postgres fixture — proves the
+    row genuinely lands in the predictions table, not just a mock call."""
     mock_result = {"prediction": "non-toxic", "confidence": 0.99, "model_version": "toxic-bert-1"}
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
     mock_batcher = MagicMock()
     mock_batcher.submit.return_value = mock_result
 
     with patch("worker.tasks.get_batcher", return_value=mock_batcher), \
-         patch("worker.tasks.SessionLocal", return_value=mock_db), \
-         patch("worker.tasks.set_cached") as mock_cache, \
+         patch("worker.tasks.SessionLocal", return_value=db_session), \
+         patch("worker.tasks.set_cached"), \
          patch("worker.tasks.metrics"):
 
         from worker.tasks import run_inference
-        run_inference("task-id-456", "Hello world")
+        run_inference("real-db-task-id", "Hello world")
 
-        mock_db.add.assert_called_once()
-        mock_db.commit.assert_called()
-        mock_cache.assert_called_once()
+    row = db_session.query(Prediction).filter(Prediction.request_id == "real-db-task-id").first()
+    assert row is not None
+    assert row.prediction == "non-toxic"
+    assert row.status == "completed"
+
+    db_session.delete(row)
+    db_session.commit()

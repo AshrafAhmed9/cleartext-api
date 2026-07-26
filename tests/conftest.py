@@ -47,3 +47,15 @@ def mock_redis_client():
     mock_redis.exists.return_value = True
     mock_redis.incr.return_value = 1
     return mock_redis
+
+
+@pytest.fixture
+def db_session():
+    """A real Postgres session (Redis stays mocked). Rolls back everything it wrote."""
+    from db import SessionLocal, init_db
+
+    init_db()
+    session = SessionLocal()
+    yield session
+    session.rollback()
+    session.close()
