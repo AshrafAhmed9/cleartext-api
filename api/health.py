@@ -53,7 +53,6 @@ def health():
 
     return {
         "status": overall,
-        "version": "2.0.0",
         "services": {
             "redis": redis_status,
             "database": db_status,

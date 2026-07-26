@@ -81,28 +81,6 @@ button.btn {
 button.btn:hover { background: #1d4ed8; }
 button.btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.tab {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  background: none;
-  color: #64748b;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-
-.tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-.tab:hover:not(.active) { color: #1e293b; }
-
 .result-box {
   margin-top: 1rem;
   padding: 1rem;
@@ -121,12 +99,6 @@ button.btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .badge.toxic { background: #fee2e2; color: #dc2626; }
 .badge.non-toxic { background: #dcfce7; color: #16a34a; }
-.badge.Healthy { background: #dcfce7; color: #16a34a; }
-.badge.Moderate { background: #fef9c3; color: #ca8a04; }
-.badge.Toxic { background: #fee2e2; color: #dc2626; }
-.badge.Positive { background: #dcfce7; color: #16a34a; }
-.badge.Mixed { background: #fef9c3; color: #ca8a04; }
-.badge.Negative { background: #fee2e2; color: #dc2626; }
 
 .stat-row { display: flex; gap: 1rem; margin: 0.8rem 0; flex-wrap: wrap; }
 
@@ -142,21 +114,6 @@ button.btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .stat .value { font-size: 1.4rem; font-weight: 700; }
 .stat .label { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
-
-.section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 1rem 0 0.5rem;
-}
-
-.tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
-.tag { padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; background: #f1f5f9; color: #475569; }
-.tag.green { background: #dcfce7; color: #16a34a; }
-.tag.red { background: #fee2e2; color: #dc2626; }
-.tag.blue { background: #dbeafe; color: #2563eb; }
 
 .error { color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; }
 

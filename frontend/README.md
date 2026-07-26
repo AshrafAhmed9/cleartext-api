@@ -1,8 +1,9 @@
-# React + Vite
+# ClearText frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A one-page React app: log in, submit a comment, see whether it's toxic.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+npm install
+npm run dev        # http://localhost:5173, talks to VITE_API_URL or localhost:8000
+npm run build       # production build to dist/
+```
