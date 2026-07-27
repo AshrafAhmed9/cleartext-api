@@ -13,9 +13,21 @@ def test_health_returns_ok(client, mock_redis_client):
     assert "worker" in data["services"]
 
 def test_health_redis_down(client, mock_redis_client):
-    mock_redis_client.ping.side_effect = Exception("Connection refused")
+    """A real outage fails EVERY Redis call, not just ping — /health still has
+    to answer, since reporting the outage is the whole point of the endpoint."""
+    outage = Exception("Connection refused")
+    mock_redis_client.ping.side_effect = outage
+    mock_redis_client.llen.side_effect = outage
+    mock_redis_client.exists.side_effect = outage
+
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["services"]["redis"] == "error"
-    assert response.json()["status"] == "degraded"
+    data = response.json()
+    assert data["status"] == "degraded"
+    assert data["services"]["redis"] == "error"
+    assert data["services"]["queue"]["depth"] == -1
+    assert data["services"]["worker"]["alive"] is False
+
     mock_redis_client.ping.side_effect = None
+    mock_redis_client.llen.side_effect = None
+    mock_redis_client.exists.side_effect = None

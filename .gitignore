@@ -2,9 +2,15 @@
 .env.docker
 __pycache__
 *.pyc
-node_modules
 .venv
 .DS_Store
+
+# Frontend
+node_modules
+dist
+dist-ssr
+*.local
+.vercel
 
 # Interview prep files (keep private)
 INTERVIEW_PREP.md
