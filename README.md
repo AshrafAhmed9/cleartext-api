@@ -149,6 +149,16 @@ Scraped from the API (`/metrics/prometheus`) and worker (`:9100`):
 
 ## Quick Start
 
+### One-Command Demo
+
+```bash
+./demo.sh
+```
+
+Builds and starts all 6 backend services (API, worker, Postgres, Redis,
+Prometheus, Grafana) plus the frontend, then opens
+`http://localhost:5173` in your browser. Log in with `admin` / `secret`.
+
 ### Local Development
 
 **Prerequisites:** Python 3.11+, Docker
