@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
-# One-command demo: build + start everything, then open the frontend.
+# One-command demo: start everything (reusing what's already running/built), open the frontend.
+# Pass --rebuild to force a clean rebuild if something's actually broken.
 set -e
 
-# Tear down any previous run first so stale containers/networks never hold onto ports.
-docker-compose down --remove-orphans > /dev/null 2>&1 || true
-
-docker-compose up --build -d
+if [ "$1" = "--rebuild" ]; then
+  docker-compose down --remove-orphans
+  docker-compose up --build -d
+elif curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+  echo "Backend already running — skipping rebuild/restart."
+else
+  # No --build: reuses existing images so the worker doesn't reload the
+  # BERT model from a cold container every single demo run.
+  docker-compose up -d
+fi
 
 echo "Waiting for the API to come up..."
 until curl -sf http://localhost:8000/health > /dev/null 2>&1; do

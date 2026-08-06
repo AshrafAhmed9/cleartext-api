@@ -17,6 +17,7 @@ from api.auth import get_current_user
 from core.cache import get_cached
 from core.celery_app import celery_app
 from core.breaker import is_open
+from db import SessionLocal, Prediction
 
 router = APIRouter()
 
@@ -62,6 +63,14 @@ def predict(body: PredictRequest, user: str = Depends(get_current_user)):
         )
 
     task_id = str(uuid.uuid4())
+
+    db = SessionLocal()
+    try:
+        db.add(Prediction(request_id=task_id, input_text=body.text))
+        db.commit()
+    finally:
+        db.close()
+
     celery_app.send_task("worker.tasks.run_inference", args=[task_id, body.text], task_id=task_id)
     return PredictQueued(task_id=task_id)
 

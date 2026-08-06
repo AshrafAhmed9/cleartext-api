@@ -20,6 +20,7 @@ def test_predict_queues_task_on_cache_miss(client, auth_headers, mock_redis_clie
     mock_redis_client.exists.return_value = True  # worker alive
     mock_redis_client.llen.return_value = 0  # queue not full
     mocker.patch("api.predict.celery_app.send_task")
+    mocker.patch("api.predict.SessionLocal")
 
     response = client.post("/predict", json={"text": "I hate you"}, headers=auth_headers)
     assert response.status_code == 200
