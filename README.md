@@ -20,41 +20,19 @@ Everything else in this project, the batching, the caching, the circuit breaker,
 
 ## Request flow
 
-```
-                     Client
-                       |
-                       v
-                 POST /predict
-                       |
-                       v
-+----------------------------------------------+
-| Redis cache (model-versioned)                |
-+----------------------------------------------+
-                       |
-     cache hit --> return result, under 5ms
-                 |  cache miss
-                       v
-+----------------------------------------------+
-| Circuit breaker                              |
-| (worker heartbeat + queue depth)             |
-+----------------------------------------------+
-                       |
-           open --> 503 + Retry-After
-                   |  closed
-                       v
-+----------------------------------------------+
-| Celery worker                                |
-|                                              |
-| 1. micro-batcher collects, up to 8ms         |
-| 2. one classifier([...]) forward pass        |
-| 3. save to Postgres + Redis cache            |
-| 4. 3rd failure -> dead-letter queue          |
-+----------------------------------------------+
-                       |
-                       v
-       Client polls GET /result/{task_id}
-
---- box line widths (should be one value) --- {48}
+```mermaid
+flowchart TD
+    A[Client] --> B["POST /predict"]
+    B --> C{"Redis cache (model-versioned)"}
+    C -- cache hit --> D["Return result, under 5ms"]
+    C -- cache miss --> E{"Circuit breaker (heartbeat + queue depth)"}
+    E -- open --> F["503 + Retry-After"]
+    E -- closed --> G["Celery worker"]
+    G --> G1["1. Micro-batcher collects, up to 8ms"]
+    G1 --> G2["2. One classifier([...]) forward pass"]
+    G2 --> G3["3. Save to Postgres + Redis cache"]
+    G3 -.-> G4["On 3rd failure: dead-letter queue"]
+    G3 --> H["Client polls GET /result/task_id"]
 ```
 
 Job status moves `queued → processing → completed`, or `failed` after 3 retries with exponential backoff, at which point the job lands in the dead-letter queue instead of disappearing.
