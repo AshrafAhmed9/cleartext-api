@@ -21,26 +21,40 @@ Everything else in this project, the batching, the caching, the circuit breaker,
 ## Request flow
 
 ```
-Client → POST /predict
-           │
-     ┌─────▼──────┐   HIT    ┌────────────────────────────────┐
-     │ Redis Cache │─────────▶│ Return result, <5ms             │
-     │ (versioned) │          │ key = (model_version, text)     │
-     └─────┬──────┘          └────────────────────────────────┘
-           │ MISS
-     ┌─────▼──────────────┐
-     │ Circuit Breaker     │──── OPEN ──▶ 503 + Retry-After
-     └─────┬──────────────┘
-           │ CLOSED
-     ┌─────▼───────────────────────────────────────────┐
-     │ Celery Worker (thread pool)                      │
-     │   → Micro-Batcher (collects requests, ≤8ms)      │
-     │   → ONE classifier([t1, t2, ...]) forward pass   │
-     │   → PostgreSQL (persist) + Redis (cache)         │
-     │   → on 3rd failure → Dead-Letter Queue            │
-     └───────────────────────────────────────────────────┘
-           │
-     Client polls GET /result/{task_id}
+                     Client
+                       |
+                       v
+                 POST /predict
+                       |
+                       v
++----------------------------------------------+
+| Redis cache (model-versioned)                |
++----------------------------------------------+
+                       |
+     cache hit --> return result, under 5ms
+                 |  cache miss
+                       v
++----------------------------------------------+
+| Circuit breaker                              |
+| (worker heartbeat + queue depth)             |
++----------------------------------------------+
+                       |
+           open --> 503 + Retry-After
+                   |  closed
+                       v
++----------------------------------------------+
+| Celery worker                                |
+|                                              |
+| 1. micro-batcher collects, up to 8ms         |
+| 2. one classifier([...]) forward pass        |
+| 3. save to Postgres + Redis cache            |
+| 4. 3rd failure -> dead-letter queue          |
++----------------------------------------------+
+                       |
+                       v
+       Client polls GET /result/{task_id}
+
+--- box line widths (should be one value) --- {48}
 ```
 
 Job status moves `queued → processing → completed`, or `failed` after 3 retries with exponential backoff, at which point the job lands in the dead-letter queue instead of disappearing.
