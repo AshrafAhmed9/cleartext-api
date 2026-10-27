@@ -28,5 +28,8 @@ def _to_result(label_scores: List[Dict]) -> Dict:
 
 
 def predict_batch(texts: List[str]) -> List[Dict]:
-    """Classify many texts in one model call. Results come back in the same order."""
-    return [_to_result(label_scores) for label_scores in classifier(texts)]
+    """Classify many texts in one model call. Results come back in the same order.
+
+    The model reads at most 512 tokens, so longer comments are cut off to fit.
+    """
+    return [_to_result(label_scores) for label_scores in classifier(texts, truncation=True)]

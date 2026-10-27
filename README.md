@@ -58,7 +58,7 @@ Job status moves `queued → processing → completed`, or `failed` after 3 retr
 - **Queue:** Celery + Redis
 - **Database:** PostgreSQL, SQLAlchemy, Alembic migrations
 - **Model:** `unitary/toxic-bert` (HuggingFace). The example workload; the serving layer itself is model-agnostic.
-- **Testing:** pytest, 18 tests, one against a real Postgres instance
+- **Testing:** pytest, 20 tests, one against a real Postgres instance
 - **CI/CD:** GitHub Actions
 - **Containers:** Docker + docker-compose, 4 services (API, worker, Postgres, Redis)
 
@@ -116,7 +116,7 @@ Open `http://localhost:8000/docs`.
 pytest tests/ -v
 ```
 
-18 tests covering predictions, cache versioning, the circuit breaker, the micro-batcher, the dead-letter queue, and worker tasks. One test writes to and reads back from a real Postgres instance; the rest mock Redis. CI runs the same suite against Postgres in GitHub Actions.
+20 tests covering predictions, cache versioning, the circuit breaker, the micro-batcher, the dead-letter queue, worker tasks, and long-comment handling. One test writes to and reads back from a real Postgres instance; the rest mock Redis. CI runs the same suite against Postgres in GitHub Actions.
 
 ---
 
@@ -128,6 +128,6 @@ worker/         Celery task, model inference, micro-batcher
 core/           Shared config, Celery setup, cache, circuit breaker
 db.py           Prediction model, engine, session
 migrations/     Alembic, two revisions, honest schema history
-tests/          18 tests
+tests/          20 tests
 .github/        CI workflow
 ```
