@@ -24,14 +24,15 @@ Everything else in this project, the batching, the caching, the circuit breaker,
 flowchart TD
     A[Client] --> B["POST /predict"]
     B --> C{"Redis cache (model-versioned)"}
-    C -- cache hit --> D["Return result, under 5ms"]
-    C -- cache miss --> E{"Circuit breaker (queue depth)"}
-    E -- open --> F["503 + Retry-After"]
-    E -- closed --> G["Celery worker"]
+    C -- cache hit --> D["Return cached result"]
+    C -- cache miss --> E{"Circuit breaker (queue length)"}
+    E -- over limit --> F["503 + Retry-After"]
+    E -- ok --> E1["Save row in Postgres, enqueue job, return task_id"]
+    E1 --> G["Celery worker"]
     G --> G1["1. Micro-batcher collects, up to 8ms"]
     G1 --> G2["2. One classifier([...]) forward pass"]
-    G2 --> G3["3. Save to Postgres + Redis cache"]
-    G3 -.-> G4["On 3rd failure: dead-letter queue"]
+    G2 --> G3["3. Update Postgres row + Redis cache"]
+    G2 -.-> G4["Model call fails: retry 3 times, then dead-letter queue"]
     G3 --> H["Client polls GET /result/task_id"]
 ```
 
@@ -47,7 +48,7 @@ Job status moves `queued → processing → completed`, or `failed` after 3 retr
 
 **Circuit breaker.** Before enqueueing a job, the API checks how long the queue is. If the backlog is over the limit (100 jobs by default), `/predict` returns `503` with a `Retry-After` header instead of making the line longer. Cache hits are still served while the breaker is open.
 
-**Dead-letter queue.** A job that fails 3 times (with 1s/2s/4s backoff between attempts) isn't dropped. The original text, the error, and the full traceback get pushed to a Redis list. `/dlq` lists them, `/dlq/{id}/replay` re-runs one.
+**Dead-letter queue.** A job that still fails after 3 retries (with 1s/2s/4s backoff between attempts) isn't dropped. The original text, the error, and the full traceback get pushed to a Redis list. `/dlq` lists them, `/dlq/{id}/replay` re-runs one.
 
 ---
 
