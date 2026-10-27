@@ -6,12 +6,15 @@ wakes each waiting thread with its own result. One call for 16 texts costs
 barely more than one call for 1 text, so this raises throughput a lot.
 It's safe because the model gives the same answer for a text either way.
 """
+import logging
 import queue
 import threading
 import time
 
 from core.config import settings
 from worker.model import predict_batch
+
+logger = logging.getLogger(__name__)
 
 
 class _Job:
@@ -58,6 +61,7 @@ class MicroBatcher:
         # Background loop: collect a batch, run the model once, hand back results.
         while True:
             batch = self._collect_batch()
+            logger.info("Batcher: running %d request(s) in one model call", len(batch))
             try:
                 results = predict_batch([job.text for job in batch])
                 for job, result in zip(batch, results):

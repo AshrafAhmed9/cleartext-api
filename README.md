@@ -83,7 +83,7 @@ Job status moves `queued → processing → completed`, or `failed` after 3 retr
 ./demo.sh
 ```
 
-Starts the stack, submits a sample comment, polls until the worker returns the result, then tails the logs. Pass `--rebuild` to force a clean rebuild.
+Starts the stack, then walks through five steps with timings: the API returns a task ID immediately, the worker's result, a repeat request served from the cache, 16 concurrent requests grouped into a few model calls, and an overload test (worker stopped, queue fills, the API starts returning 503, and every queued job still completes once the worker is back).
 
 **Docker, manually:**
 
