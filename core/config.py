@@ -1,39 +1,30 @@
-"""All tunable values in one place, loaded from environment variables / .env."""
+"""All settings in one place. Values come from environment variables or the .env file."""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     database_url: str
     redis_url: str
-    jwt_secret: str
-    jwt_algorithm: str = "HS256"
-    cache_ttl: int = 3600
-    youtube_api_key: str = ""
-    groq_api_key: str = ""
-    cors_origins: str = "http://localhost:5173"
+    cache_ttl: int = 3600  # seconds a cached result lives
 
-    # Which model is serving predictions, and its version tag for cache keys.
+    # Which model serves predictions. The version is part of every cache key.
     ml_model_name: str = "unitary/toxic-bert"
     ml_model_version: str = "toxic-bert-1"
 
-    # Micro-batcher: merge up to this many requests into one forward pass,
-    # waiting at most this long to fill the batch.
+    # Micro-batcher: group up to batch_max_size requests into one model call,
+    # waiting at most batch_max_wait_ms for the group to fill up.
     batch_max_size: int = 16
     batch_max_wait_ms: int = 8
     worker_concurrency: int = 8
 
-    # Circuit breaker: reject new work above this queue depth, or if the
-    # worker hasn't sent a heartbeat within this many seconds.
+    # Circuit breaker: reject new work once the queue is longer than this.
     queue_depth_limit: int = 100
-    worker_heartbeat_ttl: int = 15
 
-    worker_metrics_port: int = 9100
-
-    model_config = SettingsConfigDict(env_file=".env")
+    # Ignore unrelated variables that may be in the .env file.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
 
-# The two Redis keys every module that touches the worker's health agrees on.
+# Redis list where jobs that failed all their retries are kept.
 DLQ_KEY = "dlq:inference"
-HEARTBEAT_KEY = "worker:heartbeat"

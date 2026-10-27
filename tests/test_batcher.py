@@ -9,8 +9,7 @@ def test_concurrent_submits_merge_into_one_batch():
 
     fake_result = {"prediction": "non-toxic", "confidence": 0.1, "model_version": "test"}
 
-    with patch("worker.batcher.predict_batch") as mock_predict_batch, \
-         patch("worker.batcher.metrics"):
+    with patch("worker.batcher.predict_batch") as mock_predict_batch:
         mock_predict_batch.side_effect = lambda texts: [fake_result for _ in texts]
 
         batcher = MicroBatcher()

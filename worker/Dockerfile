@@ -13,7 +13,5 @@ RUN python -c "from transformers import pipeline; pipeline('text-classification'
 
 COPY . .
 
-EXPOSE 9100
-
 # Thread pool enables concurrent tasks → the micro-batcher can merge them.
 CMD ["celery", "-A", "core.celery_app", "worker", "--loglevel=info", "--pool=threads"]

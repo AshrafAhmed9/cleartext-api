@@ -1,33 +1,18 @@
-"""Circuit breaker: reject new work when the worker is down or overloaded.
+"""Circuit breaker: stop accepting new work when the queue is backed up.
 
-Checks two signals:
-  1. Worker heartbeat key missing → worker is down.
-  2. Queue depth exceeds limit → worker can't keep up.
-
-When either fires, the API returns 503 + Retry-After instead of silently
-queueing work that can't be served.
+If the worker can't keep up, jobs pile up in the queue. Past a limit, the API
+answers 503 + Retry-After instead of making the line even longer.
 """
 import redis as redis_lib
-from core.config import settings, DLQ_KEY, HEARTBEAT_KEY
-from core import metrics
+
+from core.config import settings
 
 _redis = redis_lib.from_url(settings.redis_url)
 
+# "celery" is the name of Celery's default queue (a Redis list).
+QUEUE_NAME = "celery"
+
 
 def is_open() -> bool:
-    """Return True if the circuit is OPEN (unhealthy — reject work)."""
-    metrics.DLQ_DEPTH.set(int(_redis.llen(DLQ_KEY) or 0))
-
-    # Check 1: worker heartbeat
-    if not _redis.exists(HEARTBEAT_KEY):
-        metrics.CIRCUIT_BREAKER_TRIPS.inc()
-        return True
-
-    # Check 2: queue backlog
-    queue_depth = int(_redis.llen("celery") or 0)
-    metrics.QUEUE_DEPTH.set(queue_depth)
-    if queue_depth > settings.queue_depth_limit:
-        metrics.CIRCUIT_BREAKER_TRIPS.inc()
-        return True
-
-    return False
+    """True if the queue is too long and new work should be rejected."""
+    return _redis.llen(QUEUE_NAME) > settings.queue_depth_limit

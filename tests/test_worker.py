@@ -13,8 +13,7 @@ def test_run_inference_success():
 
     with patch("worker.tasks.get_batcher", return_value=mock_batcher), \
          patch("worker.tasks.SessionLocal", return_value=mock_db), \
-         patch("worker.tasks.set_cached"), \
-         patch("worker.tasks.metrics"):
+         patch("worker.tasks.set_cached"):
 
         from worker.tasks import run_inference
         result = run_inference("test-task-id", "I hate you")
@@ -33,8 +32,7 @@ def test_run_inference_persists_to_real_db(db_session):
 
     with patch("worker.tasks.get_batcher", return_value=mock_batcher), \
          patch("worker.tasks.SessionLocal", return_value=db_session), \
-         patch("worker.tasks.set_cached"), \
-         patch("worker.tasks.metrics"):
+         patch("worker.tasks.set_cached"):
 
         from worker.tasks import run_inference
         run_inference("real-db-task-id", "Hello world")

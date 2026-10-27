@@ -1,35 +1,33 @@
-"""Dead-letter queue inspection and replay endpoints.
+"""Endpoints for looking at and replaying failed jobs.
 
-Failed inference jobs are pushed to a Redis list (dlq:inference) by the worker.
-These endpoints let an operator inspect and replay them.
+When a job fails all its retries, the worker saves it in a Redis list called
+the dead-letter queue (DLQ). These endpoints let you see that list and retry a job.
 """
 import json
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
-import redis as redis_lib
-from api.auth import get_current_user
-from core.config import settings, DLQ_KEY
-from core.celery_app import celery_app
 
-router = APIRouter(prefix="/dlq", tags=["Reliability"])
+import redis as redis_lib
+from fastapi import APIRouter, HTTPException
+
+from core.celery_app import celery_app
+from core.config import settings, DLQ_KEY
+
+router = APIRouter(prefix="/dlq")
 _redis = redis_lib.from_url(settings.redis_url)
 
 
-@router.get("", response_model=Dict[str, Any])
-def list_dlq(user: str = Depends(get_current_user)):
-    """List all entries in the inference dead-letter queue."""
-    raw_entries = _redis.lrange(DLQ_KEY, 0, -1)
-    entries = [json.loads(e) for e in raw_entries]
+@router.get("")
+def list_dlq():
+    """Show every failed job."""
+    entries = [json.loads(raw) for raw in _redis.lrange(DLQ_KEY, 0, -1)]
     return {"depth": len(entries), "entries": entries}
 
 
 @router.post("/{task_id}/replay")
-def replay_dlq_entry(task_id: str, user: str = Depends(get_current_user)):
-    """Re-enqueue a dead-lettered inference job."""
-    raw_entries = _redis.lrange(DLQ_KEY, 0, -1)
-    for raw in raw_entries:
+def replay_dlq_entry(task_id: str):
+    """Take one failed job out of the DLQ and put it back on the queue."""
+    for raw in _redis.lrange(DLQ_KEY, 0, -1):
         entry = json.loads(raw)
-        if entry.get("task_id") == task_id:
+        if entry["task_id"] == task_id:
             _redis.lrem(DLQ_KEY, 1, raw)
             celery_app.send_task("worker.tasks.run_inference", args=[task_id, entry["text"]], task_id=task_id)
             return {"status": "replayed", "task_id": task_id}

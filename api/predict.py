@@ -1,22 +1,22 @@
-"""Submit a comment for toxicity scoring, and check on the result.
+"""Endpoints for submitting a comment and checking its result.
 
-POST /predict never runs the model inline. It either serves a cached answer,
-rejects fast if the worker looks unhealthy, or hands the text to Celery and
-returns immediately with a task_id. GET /result/{task_id} is how the caller
-finds out what happened.
+POST /predict never runs the model itself. It does one of three things:
+  1. The answer is already cached -> return it right away.
+  2. The queue is too long -> reject with 503.
+  3. Otherwise -> put the job on the queue and return a task_id.
+GET /result/{task_id} is how the caller picks up the answer later.
 """
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from celery.result import AsyncResult
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
-from celery.result import AsyncResult
 
-from api.auth import get_current_user
+from core.breaker import is_open
 from core.cache import get_cached
 from core.celery_app import celery_app
-from core.breaker import is_open
 from db import SessionLocal, Prediction
 
 router = APIRouter()
@@ -27,7 +27,8 @@ class PredictRequest(BaseModel):
 
     @field_validator("text")
     @classmethod
-    def strip_and_require_nonempty(cls, v):
+    def clean_text(cls, v):
+        # Collapse extra spaces and newlines, and refuse text that is only whitespace.
         v = " ".join(v.split())
         if not v:
             raise ValueError("Text is empty")
@@ -50,20 +51,22 @@ class PredictResult(BaseModel):
 
 
 @router.post("/predict", response_model=PredictResult)
-def predict(body: PredictRequest, user: str = Depends(get_current_user)):
+def predict(body: PredictRequest):
+    # 1. Cache hit: answer immediately, no queue needed.
     cached = get_cached(body.text)
     if cached:
         return PredictResult(status="completed", cached=True, **cached)
 
+    # 2. Queue too long: tell the caller to come back later.
     if is_open():
         return JSONResponse(
             status_code=503,
             headers={"Retry-After": "10"},
-            content={"detail": "Service temporarily unavailable — worker is down or queue is full."},
+            content={"detail": "Queue is full, try again shortly."},
         )
 
+    # 3. Record the job in Postgres, then hand it to the worker.
     task_id = str(uuid.uuid4())
-
     db = SessionLocal()
     try:
         db.add(Prediction(request_id=task_id, input_text=body.text))
@@ -76,7 +79,7 @@ def predict(body: PredictRequest, user: str = Depends(get_current_user)):
 
 
 @router.get("/result/{task_id}", response_model=PredictResult)
-def get_result(task_id: str, user: str = Depends(get_current_user)):
+def get_result(task_id: str):
     task = AsyncResult(task_id, app=celery_app)
 
     if task.state == "PENDING":

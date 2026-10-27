@@ -1,4 +1,4 @@
-"""The one Prediction row per inference request, and how we talk to Postgres."""
+"""The predictions table (one row per request) and the Postgres connection."""
 import uuid
 from datetime import datetime
 
